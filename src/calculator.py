@@ -196,11 +196,21 @@ class UBPCalculator:
 
         return result
 
-    def results_to_dataframe(self, results: CalculationResults) -> pd.DataFrame:
-        """Konvertiere Ergebnisse zu DataFrame für Anzeige/Export."""
+    def results_to_dataframe(
+        self, results: CalculationResults, include_review_columns: bool = False
+    ) -> pd.DataFrame:
+        """Konvertiere Ergebnisse zu DataFrame für Anzeige/Export.
+
+        Args:
+            results: Calculation results
+            include_review_columns: If True, add admin review columns for validation
+
+        Returns:
+            DataFrame with results and optional review columns
+        """
         data = []
         for comp in results.components:
-            data.append({
+            row = {
                 "Pos": comp.pos,
                 "Anzahl": comp.anzahl,
                 "Bezeichnung": comp.bezeichnung,
@@ -209,13 +219,22 @@ class UBPCalculator:
                 "Beschichtung": comp.beschichtung,
                 "Gewicht (kg)": round(comp.ges_gewicht_kg, 2),
                 "Fläche (m²)": round(comp.flaeche_m2, 2),
-                "Material (Oeko)": comp.material_oeko_name or "-",
-                "Beschichtung (Oeko)": comp.coating_oeko_name or "-",
+                "Material (KBOB)": comp.material_oeko_name or "-",
+                "Beschichtung (KBOB)": comp.coating_oeko_name or "-",
                 "UBP Material": round(comp.ubp_material, 0),
                 "UBP Beschichtung": round(comp.ubp_coating, 0),
                 "UBP Total": round(comp.ubp_total, 0),
                 "Zugeordnet": "Ja" if comp.material_matched else "Nein",
-            })
+            }
+
+            if include_review_columns:
+                row["Material korrekt?"] = ""
+                row["Korrektur Material (KBOB)"] = ""
+                row["Beschichtung korrekt?"] = ""
+                row["Korrektur Beschichtung (KBOB)"] = ""
+                row["Kommentar"] = ""
+
+            data.append(row)
         return pd.DataFrame(data)
 
     def summary_to_dict(self, results: CalculationResults) -> dict:
