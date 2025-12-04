@@ -1,0 +1,118 @@
+{
+  "_meta": {
+    "description": "Material and coating mappings from HiCAD codes to Swiss Oekobilanz database entries",
+    "source": "Oekobilanzdaten im Baubereich 2009/1:2022 v7.0 (KBOB/eco-bau/IPB)",
+    "ubp_version": "UBP'21 (Umweltbelastungspunkte 2021)",
+    "last_updated": "2024-12",
+    "notes": [
+      "oeko_id: Reference ID from the Oekobilanz database (e.g., 06.012 = Stahlprofil)",
+      "ubp_per_kg: Environmental impact points per kilogram of material",
+      "ubp_per_m2: Environmental impact points per square meter (for coatings)",
+      "type_overrides: Different UBP values for same material used as sheet vs profile"
+    ]
+  },
+  "materials": {
+    "S235JR": {
+      "oeko_id": "06.012",
+      "oeko_name": "Stahlprofil, blank",
+      "ubp_per_kg": 1290,
+      "category": "steel_profile"
+    },
+    "S235JRH": {
+      "oeko_id": "06.012",
+      "oeko_name": "Stahlprofil, blank",
+      "ubp_per_kg": 1290,
+      "category": "steel_profile"
+    },
+    "X5CrNi18-10": {
+      "oeko_id": "06.004",
+      "oeko_name": "Chromnickelstahlblech 18/8 blank",
+      "ubp_per_kg": 9710,
+      "category": "stainless_steel"
+    },
+    "304": {
+      "oeko_id": "06.004",
+      "oeko_name": "Chromnickelstahlblech 18/8 blank",
+      "ubp_per_kg": 9710,
+      "category": "stainless_steel"
+    },
+    "EN AW-6060": {
+      "oeko_id": "06.002",
+      "oeko_name": "Aluminiumprofil, blank",
+      "ubp_per_kg": 11500,
+      "category": "aluminum"
+    },
+    "Al99,0": {
+      "oeko_id": "06.001",
+      "oeko_name": "Aluminiumblech, blank",
+      "ubp_per_kg": 12500,
+      "category": "aluminum"
+    },
+    "Leichtmetall": {
+      "oeko_id": "06.002",
+      "oeko_name": "Aluminiumprofil, blank",
+      "ubp_per_kg": 11500,
+      "category": "aluminum"
+    },
+    "Stahl, Metall allgemein": {
+      "oeko_id": "06.012",
+      "oeko_name": "Stahlprofil, blank",
+      "ubp_per_kg": 1290,
+      "category": "steel_profile"
+    }
+  },
+  "type_overrides": {
+    "Bleche": {
+      "steel": {"oeko_id": "06.010", "oeko_name": "Stahlblech, blank", "ubp_per_kg": 5260}
+    },
+    "Kantblech": {
+      "steel": {"oeko_id": "06.010", "oeko_name": "Stahlblech, blank", "ubp_per_kg": 5260}
+    },
+    "Flachstahl": {
+      "steel": {"oeko_id": "06.010", "oeko_name": "Stahlblech, blank", "ubp_per_kg": 5260}
+    }
+  },
+  "coatings": {
+    "feuerverzinkt": {
+      "oeko_id": "14.008",
+      "oeko_name": "Verzinken, Stahl",
+      "ubp_per_m2": 29500,
+      "applies_to": ["steel"]
+    },
+    "pulverb": {
+      "oeko_id": "14.006",
+      "oeko_name": "Pulverbeschichten, Stahl",
+      "ubp_per_m2": 6760,
+      "applies_to": ["steel"]
+    },
+    "pulverbeschicht": {
+      "oeko_id": "14.006",
+      "oeko_name": "Pulverbeschichten, Stahl",
+      "ubp_per_m2": 6760,
+      "applies_to": ["steel"]
+    },
+    "igp-dura": {
+      "oeko_id": "14.006",
+      "oeko_name": "Pulverbeschichten, Stahl",
+      "ubp_per_m2": 6760,
+      "applies_to": ["steel", "aluminum"]
+    }
+  },
+  "coating_aluminum_override": {
+    "pulverb": {
+      "oeko_id": "14.005",
+      "oeko_name": "Pulverbeschichten, Aluminium",
+      "ubp_per_m2": 6260
+    },
+    "pulverbeschicht": {
+      "oeko_id": "14.005",
+      "oeko_name": "Pulverbeschichten, Aluminium",
+      "ubp_per_m2": 6260
+    },
+    "igp-dura": {
+      "oeko_id": "14.005",
+      "oeko_name": "Pulverbeschichten, Aluminium",
+      "ubp_per_m2": 6260
+    }
+  }
+}
