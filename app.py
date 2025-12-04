@@ -1,7 +1,9 @@
 """
 econstruct Umweltbelastungsrechner - Streamlit App
 """
+import io
 import os
+from datetime import datetime
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -17,6 +19,25 @@ OEKOBILANZ_PATH = Path(os.environ.get(
     "OEKOBILANZ_FILE",
     "Oekobilanzdaten_ Baubereich_Donne_ecobilans_construction_2009-1-2022_v7.0.xlsx"
 ))
+
+
+APP_PASSWORD = "econstruct2025!"
+
+
+def check_password() -> bool:
+    """Simple password protection."""
+    if st.session_state.get("authenticated"):
+        return True
+
+    st.title("🔒 Anmeldung erforderlich")
+    password = st.text_input("Passwort", type="password")
+    if password:
+        if password == APP_PASSWORD:
+            st.session_state.authenticated = True
+            st.rerun()
+        else:
+            st.error("Falsches Passwort")
+    return False
 
 
 # Seitenkonfiguration
@@ -161,6 +182,9 @@ def create_pie_chart(results: CalculationResults) -> go.Figure:
 
 
 def main():
+    if not check_password():
+        st.stop()
+
     st.title("🌿 econstruct Umweltbelastungsrechner")
     st.markdown("Berechne UBP (Umweltbelastungspunkte) für HiCAD-Modellexporte")
 
@@ -192,7 +216,7 @@ def main():
         1. **Hochladen** Sie Ihren HiCAD-Modellexport (.xlsx)
         2. Der Rechner **verknüpft** Materialien mit der Schweizer Oekobilanz-Datenbank
         3. **Ansehen** der Umweltbelastung aufgeschlüsselt nach Material und Bauteil
-        4. **Herunterladen** der detaillierten Ergebnisse als CSV
+        4. **Herunterladen** der detaillierten Ergebnisse als Excel
         """)
 
         # Zeige unterstützte Materialien
@@ -313,13 +337,19 @@ def main():
         height=400
     )
 
-    # Download-Button
-    csv = results_df.to_csv(index=False)
+    # Download-Button (Excel mit Admin-Review-Spalten)
+    export_df = calculator.results_to_dataframe(results, include_review_columns=True)
+    excel_buffer = io.BytesIO()
+    with pd.ExcelWriter(excel_buffer, engine="openpyxl") as writer:
+        export_df.to_excel(writer, index=False, sheet_name="UBP Ergebnisse")
+    excel_buffer.seek(0)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     st.download_button(
-        label="📥 Ergebnisse als CSV herunterladen",
-        data=csv,
-        file_name="ubp_ergebnisse.csv",
-        mime="text/csv"
+        label="📥 Ergebnisse als Excel herunterladen",
+        data=excel_buffer,
+        file_name=f"{timestamp}_econstruct_impact.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
     # Warnung für nicht zugeordnete Materialien
