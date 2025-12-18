@@ -1,8 +1,9 @@
 """
-econstruct Umweltbelastungsrechner - Streamlit App
+éco-log - Streamlit App
 """
 import io
 import os
+import re
 from datetime import datetime
 import streamlit as st
 import pandas as pd
@@ -42,8 +43,8 @@ def check_password() -> bool:
 
 # Seitenkonfiguration
 st.set_page_config(
-    page_title="econstruct UBP-Rechner",
-    page_icon="🌿",
+    page_title="éco-log",
+    page_icon="♻️",
     layout="wide"
 )
 
@@ -51,6 +52,18 @@ st.set_page_config(
 def format_number(n: float) -> str:
     """Formatiere grosse Zahlen mit Tausendertrennzeichen."""
     return f"{n:,.0f}".replace(",", "'")
+
+
+def normalize_filename(filename: str) -> str:
+    """Clean and normalize a filename for use in export."""
+    # Remove extension
+    name = Path(filename).stem
+    # Replace spaces and special chars with underscores
+    name = re.sub(r"[^\w\-]", "_", name)
+    # Collapse multiple underscores
+    name = re.sub(r"_+", "_", name)
+    # Strip leading/trailing underscores
+    return name.strip("_")
 
 
 def create_material_chart(results: CalculationResults) -> go.Figure:
@@ -185,7 +198,7 @@ def main():
     if not check_password():
         st.stop()
 
-    st.title("🌿 econstruct Umweltbelastungsrechner")
+    st.title("éco-log")
     st.markdown("Berechne UBP (Umweltbelastungspunkte) für HiCAD-Modellexporte")
 
     # Seitenleiste für Datei-Upload und Einstellungen
@@ -194,7 +207,7 @@ def main():
         uploaded_file = st.file_uploader(
             "HiCAD Excel-Export hochladen",
             type=["xlsx"],
-            help="Laden Sie die aus HiCAD exportierte Excel-Datei mit dem Blatt 'Mengenliste' hoch"
+            help="Lade die aus HiCAD exportierte Excel-Datei mit dem Blatt 'Mengenliste' hoch"
         )
 
         st.divider()
@@ -202,21 +215,21 @@ def main():
 
         # Prüfe ob Oekobilanz-Datei vorhanden
         if OEKOBILANZ_PATH.exists():
-            st.success("✅ Oekobilanz-Datenbank geladen")
+            st.success("✅ KBOB Ökobilanzdaten geladen")
         else:
-            st.warning("⚠️ Oekobilanz-Datenbank nicht gefunden")
-            st.markdown("Platzieren Sie die Oekobilanz Excel-Datei im App-Verzeichnis")
+            st.warning("⚠️ KBOB Ökobilanzdaten nicht gefunden")
+            st.markdown("Platziere die KBOB Excel-Datei im App-Verzeichnis")
 
     # Hauptinhalt
     if uploaded_file is None:
-        st.info("👆 Laden Sie einen HiCAD Excel-Export hoch, um zu beginnen")
+        st.info("👈 Lade einen HiCAD Excel-Export hoch, um zu beginnen")
 
         st.markdown("### So funktioniert's")
         st.markdown("""
-        1. **Hochladen** Sie Ihren HiCAD-Modellexport (.xlsx)
-        2. Der Rechner **verknüpft** Materialien mit der Schweizer Oekobilanz-Datenbank
-        3. **Ansehen** der Umweltbelastung aufgeschlüsselt nach Material und Bauteil
-        4. **Herunterladen** der detaillierten Ergebnisse als Excel
+        1. **Lade** deinen HiCAD-Modellexport hoch (.xlsx)
+        2. Der Rechner **verknüpft** Materialien mit den KBOB Ökobilanzdaten im Baubereich (2009/1:2022, V7.0)
+        3. **Sieh** die Umweltbelastung aufgeschlüsselt nach Material und Bauteil
+        4. **Lade** die detaillierten Ergebnisse als Excel herunter
         """)
 
         # Zeige unterstützte Materialien
@@ -345,17 +358,18 @@ def main():
     excel_buffer.seek(0)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    source_name = normalize_filename(uploaded_file.name)
     st.download_button(
         label="📥 Ergebnisse als Excel herunterladen",
         data=excel_buffer,
-        file_name=f"{timestamp}_econstruct_impact.xlsx",
+        file_name=f"{timestamp}_eco-log_{source_name}.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
     # Warnung für nicht zugeordnete Materialien
     if results.unmatched:
         st.header("⚠️ Nicht zugeordnete Materialien")
-        st.warning(f"{len(results.unmatched)} Bauteile konnten nicht mit der Oekobilanz-Datenbank verknüpft werden")
+        st.warning(f"{len(results.unmatched)} Bauteile konnten nicht mit den KBOB Ökobilanzdaten verknüpft werden")
 
         unmatched_df = pd.DataFrame(results.unmatched).rename(columns={
             "pos": "Pos",
