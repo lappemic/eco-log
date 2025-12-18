@@ -153,7 +153,7 @@ def create_pareto_chart(results: CalculationResults) -> go.Figure:
     ))
 
     fig.update_layout(
-        title="Top 15 Bauteile nach UBP (Pareto)",
+        title="15 Bauteile mit grösster Umweltbelastung (Pareto)",
         xaxis_tickangle=-45,
         yaxis=dict(title="UBP"),
         yaxis2=dict(
