@@ -9,7 +9,31 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 from pathlib import Path
+
+# Professional environmental color palette
+# Low impact = green tones, High impact = red/orange tones
+ENV_COLORS = {
+    "low": "#2D6A4F",       # Forest green (low impact)
+    "medium": "#95D5B2",    # Light sage
+    "high": "#E9C46A",      # Warm yellow
+    "very_high": "#E76F51", # Terracotta (high impact)
+    "critical": "#9B2226",  # Deep red (critical)
+
+    # Chart accents
+    "primary": "#264653",   # Deep teal
+    "secondary": "#287271", # Ocean teal
+    "accent": "#E9C46A",    # Golden yellow
+    "line": "#E76F51",      # Accent line
+
+    # Coating specific (blue spectrum)
+    "coating_low": "#48CAE4",
+    "coating_high": "#023E8A",
+}
+
+# Environmental impact gradient (low to high)
+ENV_GRADIENT = ["#2D6A4F", "#40916C", "#74C69D", "#E9C46A", "#F4A261", "#E76F51", "#9B2226"]
 
 from src.parser import parse_mengenliste, parse_oekobilanz
 from src.matcher import MaterialMatcher
@@ -67,57 +91,134 @@ def normalize_filename(filename: str) -> str:
 
 
 def create_material_chart(results: CalculationResults) -> go.Figure:
-    """Erstelle Balkendiagramm der UBP nach Material."""
+    """Erstelle horizontales Balkendiagramm der UBP nach Material."""
     if not results.by_material:
         return None
 
-    data = sorted(results.by_material.items(), key=lambda x: -x[1]["ubp"])
+    # Sort by UBP (lowest at top for horizontal bars → highest impact at top visually)
+    data = sorted(results.by_material.items(), key=lambda x: x[1]["ubp"])
     materials = [d[0] for d in data]
     ubps = [d[1]["ubp"] for d in data]
+    weights = [d[1]["weight_kg"] for d in data]
 
-    fig = px.bar(
-        x=materials,
-        y=ubps,
-        labels={"x": "Material", "y": "UBP"},
-        title="UBP nach Basismaterial",
-        color=ubps,
-        color_continuous_scale="Reds"
-    )
+    # Calculate percentages
+    total_material_ubp = sum(ubps)
+    percentages = [(u / total_material_ubp * 100) if total_material_ubp > 0 else 0 for u in ubps]
+
+    # Create horizontal bar chart
+    fig = go.Figure()
+
+    fig.add_trace(go.Bar(
+        y=materials,
+        x=ubps,
+        orientation='h',
+        marker=dict(
+            color=ubps,
+            colorscale=[[0, ENV_COLORS["low"]], [0.5, ENV_COLORS["accent"]], [1, ENV_COLORS["very_high"]]],
+            line=dict(width=0),
+        ),
+        text=[f"<b>{format_number(u)}</b> UBP ({p:.0f}%)" for u, p in zip(ubps, percentages)],
+        textposition='auto',
+        textfont=dict(color='white', size=11),
+        hovertemplate="<b>%{y}</b><br>" +
+                      "Umweltbelastung: %{x:,.0f} UBP<br>" +
+                      "<extra></extra>",
+    ))
+
+    # Find the highest impact material
+    max_idx = len(ubps) - 1  # After sorting, highest is last
+    max_material = materials[max_idx]
+    max_pct = percentages[max_idx]
+
     fig.update_layout(
-        xaxis_tickangle=-45,
+        title=dict(
+            text=f"Umweltbelastung nach Material<br><sub>{max_material} verursacht {max_pct:.0f}% der Material-UBP</sub>",
+            font=dict(size=16, color=ENV_COLORS["primary"]),
+        ),
+        xaxis=dict(
+            title="Umweltbelastungspunkte (UBP)",
+            showgrid=True,
+            gridcolor='rgba(0,0,0,0.1)',
+        ),
+        yaxis=dict(
+            title="",
+            tickfont=dict(size=11),
+        ),
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        margin=dict(l=200, r=20, t=80, b=40),
+        height=max(350, len(materials) * 40 + 100),
         showlegend=False,
-        coloraxis_showscale=False
     )
+
     return fig
 
 
 def create_coating_chart(results: CalculationResults) -> go.Figure:
-    """Erstelle Balkendiagramm der UBP nach Beschichtung."""
+    """Erstelle horizontales Balkendiagramm der UBP nach Beschichtung."""
     if not results.by_coating:
         return None
 
-    data = sorted(results.by_coating.items(), key=lambda x: -x[1]["ubp"])
+    # Sort by UBP (lowest at top → highest impact at top visually)
+    data = sorted(results.by_coating.items(), key=lambda x: x[1]["ubp"])
     coatings = [d[0] for d in data]
     ubps = [d[1]["ubp"] for d in data]
+    areas = [d[1]["area_m2"] for d in data]
 
-    fig = px.bar(
-        x=coatings,
-        y=ubps,
-        labels={"x": "Beschichtung", "y": "UBP"},
-        title="UBP nach Beschichtung",
-        color=ubps,
-        color_continuous_scale="Blues"
-    )
+    # Calculate percentages
+    total_coating_ubp = sum(ubps)
+    percentages = [(u / total_coating_ubp * 100) if total_coating_ubp > 0 else 0 for u in ubps]
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Bar(
+        y=coatings,
+        x=ubps,
+        orientation='h',
+        marker=dict(
+            color=ubps,
+            colorscale=[[0, ENV_COLORS["coating_low"]], [1, ENV_COLORS["coating_high"]]],
+            line=dict(width=0),
+        ),
+        text=[f"<b>{format_number(u)}</b> UBP ({p:.0f}%)" for u, p in zip(ubps, percentages)],
+        textposition='auto',
+        textfont=dict(color='white', size=11),
+        hovertemplate="<b>%{y}</b><br>" +
+                      "Umweltbelastung: %{x:,.0f} UBP<br>" +
+                      "<extra></extra>",
+    ))
+
+    # Find highest impact coating
+    max_idx = len(ubps) - 1
+    max_coating = coatings[max_idx] if coatings else "–"
+    max_pct = percentages[max_idx] if percentages else 0
+
     fig.update_layout(
-        xaxis_tickangle=-45,
+        title=dict(
+            text=f"Umweltbelastung nach Beschichtung<br><sub>{max_coating} verursacht {max_pct:.0f}% der Beschichtungs-UBP</sub>",
+            font=dict(size=16, color=ENV_COLORS["primary"]),
+        ),
+        xaxis=dict(
+            title="Umweltbelastungspunkte (UBP)",
+            showgrid=True,
+            gridcolor='rgba(0,0,0,0.1)',
+        ),
+        yaxis=dict(
+            title="",
+            tickfont=dict(size=11),
+        ),
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        margin=dict(l=220, r=20, t=80, b=40),
+        height=max(300, len(coatings) * 45 + 100),
         showlegend=False,
-        coloraxis_showscale=False
     )
+
     return fig
 
 
 def create_pareto_chart(results: CalculationResults) -> go.Figure:
-    """Erstelle Pareto-Diagramm der Top-Komponenten nach UBP."""
+    """Erstelle Pareto-Diagramm mit 80/20-Prinzip Hervorhebung."""
     top_components = sorted(
         results.components,
         key=lambda x: -x.ubp_total
@@ -126,71 +227,191 @@ def create_pareto_chart(results: CalculationResults) -> go.Figure:
     if not top_components:
         return None
 
-    labels = [f"Pos {int(c.pos)}: {c.bezeichnung[:20]}" for c in top_components]
+    def make_label(c):
+        bez = c.bezeichnung[:20] + "…" if len(c.bezeichnung) > 20 else c.bezeichnung
+        return f"Pos {int(c.pos)}: {bez} ({c.material})"
+
+    labels = [make_label(c) for c in top_components]
+    full_labels = [f"Pos {int(c.pos)}: {c.bezeichnung} ({c.material})" for c in top_components]
     ubps = [c.ubp_total for c in top_components]
+
+    # Calculate cumulative percentage
     cumulative = []
     running = 0
     for ubp in ubps:
         running += ubp
         cumulative.append(running / results.total_ubp * 100 if results.total_ubp > 0 else 0)
 
+    # Find where 80% threshold is crossed
+    threshold_idx = next((i for i, c in enumerate(cumulative) if c >= 80), len(cumulative) - 1)
+
+    # Create colors: highlight components that contribute to 80%
+    bar_colors = [ENV_COLORS["very_high"] if i <= threshold_idx else ENV_COLORS["medium"]
+                  for i in range(len(ubps))]
+
     fig = go.Figure()
 
+    # Bars with gradient based on impact
     fig.add_trace(go.Bar(
         x=labels,
         y=ubps,
-        name="UBP",
-        marker_color="steelblue"
+        name="UBP pro Bauteil",
+        marker=dict(
+            color=bar_colors,
+            line=dict(width=0),
+        ),
+        text=[format_number(u) for u in ubps],
+        textposition='outside',
+        textfont=dict(size=10, color=ENV_COLORS["primary"]),
+        hovertemplate="%{customdata}<br>UBP: %{y:,.0f}<extra></extra>",
+        customdata=full_labels,
     ))
 
+    # Cumulative line
     fig.add_trace(go.Scatter(
         x=labels,
         y=cumulative,
-        name="Kumuliert %",
+        name="Kumulierte Belastung",
         yaxis="y2",
-        line=dict(color="red", width=2),
-        marker=dict(size=8)
+        line=dict(color=ENV_COLORS["line"], width=3),
+        marker=dict(size=8, color=ENV_COLORS["line"]),
+        hovertemplate="%{y:.1f}% der Gesamtbelastung<extra></extra>",
     ))
 
+    # 80% threshold line
+    fig.add_hline(
+        y=80, line_dash="dash", line_color=ENV_COLORS["primary"],
+        line_width=2, yref="y2",
+        annotation_text="80% Schwelle",
+        annotation_position="right",
+        annotation_font=dict(color=ENV_COLORS["primary"], size=11),
+    )
+
+    # Count components causing 80%
+    components_for_80 = threshold_idx + 1
+    pct_of_total = (components_for_80 / len(results.components) * 100) if results.components else 0
+
     fig.update_layout(
-        title="15 Bauteile mit grösster Umweltbelastung (Pareto)",
-        xaxis_tickangle=-45,
-        yaxis=dict(title="UBP"),
+        title=dict(
+            text=f"Pareto: Top {len(top_components)} Bauteile nach Umweltbelastung<br>" +
+                 f"<sub><b>{components_for_80} Bauteile</b> ({pct_of_total:.0f}% aller Teile) verursachen <b>80%</b> der Belastung</sub>",
+            font=dict(size=16, color=ENV_COLORS["primary"]),
+        ),
+        xaxis=dict(
+            title="",
+            tickangle=-45,
+            tickfont=dict(size=10),
+        ),
+        yaxis=dict(
+            title=dict(text="UBP pro Bauteil", font=dict(color=ENV_COLORS["primary"])),
+            showgrid=True,
+            gridcolor='rgba(0,0,0,0.08)',
+        ),
         yaxis2=dict(
-            title="Kumuliert %",
+            title=dict(text="Kumuliert (%)", font=dict(color=ENV_COLORS["line"])),
             overlaying="y",
             side="right",
-            range=[0, 100]
+            range=[0, 105],
+            showgrid=False,
         ),
-        legend=dict(x=0.8, y=1.1),
-        height=500
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="center",
+            x=0.5,
+            font=dict(size=11),
+        ),
+        margin=dict(l=60, r=60, t=100, b=80),
+        height=500,
+        bargap=0.15,
     )
+
     return fig
 
 
-def create_pie_chart(results: CalculationResults) -> go.Figure:
-    """Erstelle Kreisdiagramm der Materialverteilung."""
-    if not results.by_material:
+def create_distribution_chart(results: CalculationResults) -> go.Figure:
+    """Erstelle Treemap für hierarchische UBP-Verteilung."""
+    if not results.by_material and not results.by_coating:
         return None
 
-    all_sources = {}
+    # Calculate totals first
+    total_material_ubp = sum(d["ubp"] for d in results.by_material.values())
+    total_coating_ubp = sum(d["ubp"] for d in results.by_coating.values())
+    total_ubp = total_material_ubp + total_coating_ubp
 
-    for mat, data in results.by_material.items():
-        all_sources[f"Material: {mat}"] = data["ubp"]
+    # Build treemap data - root must equal sum of children for branchvalues="total"
+    labels = ["Gesamt"]
+    parents = [""]
+    values = [total_ubp]
+    colors = [ENV_COLORS["primary"]]
 
-    for coat, data in results.by_coating.items():
-        all_sources[f"Beschichtung: {coat}"] = data["ubp"]
+    if total_material_ubp > 0:
+        labels.append("Materialien")
+        parents.append("Gesamt")
+        values.append(total_material_ubp)
+        colors.append(ENV_COLORS["very_high"])
 
-    labels = list(all_sources.keys())
-    values = list(all_sources.values())
+        # Add individual materials
+        for mat, data in sorted(results.by_material.items(), key=lambda x: -x[1]["ubp"]):
+            labels.append(mat)
+            parents.append("Materialien")
+            values.append(data["ubp"])
+            # Gradient color based on relative impact
+            pct = data["ubp"] / total_material_ubp if total_material_ubp > 0 else 0
+            if pct > 0.3:
+                colors.append(ENV_COLORS["critical"])
+            elif pct > 0.15:
+                colors.append(ENV_COLORS["very_high"])
+            else:
+                colors.append(ENV_COLORS["high"])
 
-    fig = px.pie(
-        names=labels,
+    if total_coating_ubp > 0:
+        labels.append("Beschichtungen")
+        parents.append("Gesamt")
+        values.append(total_coating_ubp)
+        colors.append(ENV_COLORS["coating_high"])
+
+        # Add individual coatings
+        for coat, data in sorted(results.by_coating.items(), key=lambda x: -x[1]["ubp"]):
+            labels.append(coat)
+            parents.append("Beschichtungen")
+            values.append(data["ubp"])
+            colors.append(ENV_COLORS["coating_low"])
+
+    fig = go.Figure(go.Treemap(
+        labels=labels,
+        parents=parents,
         values=values,
-        title="UBP-Verteilung (Materialien + Beschichtungen)",
-        hole=0.4
+        marker=dict(
+            colors=colors,
+            line=dict(width=2, color='white'),
+        ),
+        texttemplate="<b>%{label}</b><br>%{value:,.0f} UBP<br>%{percentRoot:.1%}",
+        textfont=dict(size=12),
+        hovertemplate="<b>%{label}</b><br>" +
+                      "UBP: %{value:,.0f}<br>" +
+                      "Anteil: %{percentRoot:.1%}<extra></extra>",
+        branchvalues="total",
+        pathbar=dict(visible=True),
+    ))
+
+    # Calculate material vs coating split
+    mat_pct = (total_material_ubp / results.total_ubp * 100) if results.total_ubp > 0 else 0
+    coat_pct = (total_coating_ubp / results.total_ubp * 100) if results.total_ubp > 0 else 0
+
+    fig.update_layout(
+        title=dict(
+            text=f"UBP-Verteilung: Materialien vs. Beschichtungen<br>" +
+                 f"<sub>Materialien: <b>{mat_pct:.0f}%</b> | Beschichtungen: <b>{coat_pct:.0f}%</b></sub>",
+            font=dict(size=16, color=ENV_COLORS["primary"]),
+        ),
+        margin=dict(l=10, r=10, t=80, b=10),
+        height=500,
     )
-    fig.update_traces(textposition="inside", textinfo="percent+label")
+
     return fig
 
 
@@ -288,10 +509,10 @@ def main():
         st.metric("Nicht zugeordnet", str(summary["unmatched_count"]))
 
     # Diagramme
-    st.header("📈 Visualisierungen")
+    st.header("📈 Umweltanalyse")
 
-    tab1, tab2, tab3, tab4 = st.tabs([
-        "Nach Material", "Nach Beschichtung", "Top Bauteile", "Verteilung"
+    tab1, tab2, tab3 = st.tabs([
+        "🔩 Material-Impact", "🎨 Beschichtungs-Impact", "📊 Pareto (80/20)"
     ])
 
     with tab1:
@@ -314,13 +535,6 @@ def main():
             st.plotly_chart(fig, use_container_width=True)
         else:
             st.info("Keine Bauteil-Daten vorhanden")
-
-    with tab4:
-        fig = create_pie_chart(results)
-        if fig:
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.info("Keine Daten vorhanden")
 
     # Detaillierte Ergebnistabelle
     st.header("📋 Detaillierte Ergebnisse")
