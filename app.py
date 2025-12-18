@@ -53,15 +53,9 @@ AUTH_COOKIE_NAME = "eco_log_auth"
 AUTH_TOKEN = hashlib.sha256(APP_PASSWORD.encode()).hexdigest()[:32]
 
 
-@st.cache_resource
-def get_cookie_manager():
-    """Get cookie manager instance (cached to avoid recreation)."""
-    return stx.CookieManager()
-
-
 def check_password() -> bool:
     """Password protection with cookie persistence."""
-    cookie_manager = get_cookie_manager()
+    cookie_manager = stx.CookieManager(key="eco_log_cookies")
 
     # Check session state first (fastest)
     if st.session_state.get("authenticated"):
