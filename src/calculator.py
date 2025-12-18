@@ -224,24 +224,33 @@ class UBPCalculator:
                 "Beschichtung": comp.beschichtung,
                 "Gewicht (kg)": round(comp.ges_gewicht_kg, 2),
                 "Fläche (m²)": round(comp.flaeche_m2, 2),
-                "Material ID (KBOB)": comp.material_oeko_id or "-",
-                "Material (KBOB)": comp.material_oeko_name or "-",
-                "Beschichtung ID (KBOB)": comp.coating_oeko_id or "-",
-                "Beschichtung (KBOB)": comp.coating_oeko_name or "-",
-                "UBP Material": round(comp.ubp_material, 0),
-                "UBP Beschichtung": round(comp.ubp_coating, 0),
-                "UBP Total": round(comp.ubp_total, 0),
-                "Zugeordnet": "Ja" if comp.material_matched else "Nein",
             }
 
             if include_review_columns:
+                # Material: matched then correction
+                row["Material ID (KBOB)"] = comp.material_oeko_id or "-"
                 row["Korrektur Material ID (KBOB)"] = ""
+                row["Material (KBOB)"] = comp.material_oeko_name or "-"
                 row["Korrektur Material (KBOB)"] = ""
+                # 1. Beschichtung: matched then correction
+                row["Beschichtung ID (KBOB)"] = comp.coating_oeko_id or "-"
                 row["Korrektur 1. Beschichtung ID (KBOB)"] = ""
+                row["Beschichtung (KBOB)"] = comp.coating_oeko_name or "-"
                 row["Korrektur 1. Beschichtung (KBOB)"] = ""
+                # 2. Beschichtung: correction only
                 row["Korrektur 2. Beschichtung ID (KBOB)"] = ""
                 row["Korrektur 2. Beschichtung (KBOB)"] = ""
                 row["Kommentar"] = ""
+            else:
+                row["Material ID (KBOB)"] = comp.material_oeko_id or "-"
+                row["Material (KBOB)"] = comp.material_oeko_name or "-"
+                row["Beschichtung ID (KBOB)"] = comp.coating_oeko_id or "-"
+                row["Beschichtung (KBOB)"] = comp.coating_oeko_name or "-"
+
+            row["UBP Material"] = round(comp.ubp_material, 0)
+            row["UBP Beschichtung"] = round(comp.ubp_coating, 0)
+            row["UBP Total"] = round(comp.ubp_total, 0)
+            row["Zugeordnet"] = "Ja" if comp.material_matched else "Nein"
 
             data.append(row)
         return pd.DataFrame(data)
