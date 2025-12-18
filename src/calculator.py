@@ -25,6 +25,7 @@ class ComponentResult:
 
     # Matching results
     material_matched: bool = False
+    material_oeko_id: Optional[str] = None
     material_oeko_name: Optional[str] = None
     material_ubp_per_kg: Optional[float] = None
 
@@ -177,6 +178,7 @@ class UBPCalculator:
         mat_match = self.matcher.match_material(material, typ, bezeichnung)
         if mat_match.matched:
             result.material_matched = True
+            result.material_oeko_id = mat_match.oeko_id
             result.material_oeko_name = mat_match.oeko_name
             result.material_ubp_per_kg = mat_match.ubp_per_kg
             result.ubp_material = ges_gewicht_kg * (mat_match.ubp_per_kg or 0)
@@ -219,6 +221,7 @@ class UBPCalculator:
                 "Beschichtung": comp.beschichtung,
                 "Gewicht (kg)": round(comp.ges_gewicht_kg, 2),
                 "Fläche (m²)": round(comp.flaeche_m2, 2),
+                "Material ID (KBOB)": comp.material_oeko_id or "-",
                 "Material (KBOB)": comp.material_oeko_name or "-",
                 "Beschichtung (KBOB)": comp.coating_oeko_name or "-",
                 "UBP Material": round(comp.ubp_material, 0),
