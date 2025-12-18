@@ -114,6 +114,7 @@ class UBPCalculator:
             else:
                 results.unmatched.append({
                     "pos": comp_result.pos,
+                    "bezeichnung": comp_result.bezeichnung,
                     "material": comp_result.material,
                     "typ": comp_result.typ,
                     "weight_kg": comp_result.ges_gewicht_kg,

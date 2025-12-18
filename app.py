@@ -587,6 +587,7 @@ def main():
 
         unmatched_df = pd.DataFrame(results.unmatched).rename(columns={
             "pos": "Pos",
+            "bezeichnung": "Bezeichnung",
             "material": "Material",
             "typ": "Typ",
             "weight_kg": "Gewicht (kg)",
