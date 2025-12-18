@@ -110,6 +110,15 @@
         "RG M", "FBS ",
         "Schraubanker", "Alublech"
       ]
+    },
+    "plastic": {
+      "oeko_id": "15.005",
+      "oeko_name": "Polystyrol (PS)",
+      "ubp_per_kg": 8170,
+      "category": "plastic",
+      "prefixes": [
+        "U-Kunststoffplatten"
+      ]
     }
   },
   "coatings": {
