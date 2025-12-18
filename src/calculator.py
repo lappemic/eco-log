@@ -239,6 +239,8 @@ class UBPCalculator:
                 row["Korrektur Material (KBOB)"] = ""
                 row["Korrektur 1. Beschichtung ID (KBOB)"] = ""
                 row["Korrektur 1. Beschichtung (KBOB)"] = ""
+                row["Korrektur 2. Beschichtung ID (KBOB)"] = ""
+                row["Korrektur 2. Beschichtung (KBOB)"] = ""
                 row["Kommentar"] = ""
 
             data.append(row)
