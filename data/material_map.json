@@ -8,7 +8,8 @@
       "oeko_id: Reference ID from the Oekobilanz database (e.g., 06.012 = Stahlprofil)",
       "ubp_per_kg: Environmental impact points per kilogram of material",
       "ubp_per_m2: Environmental impact points per square meter (for coatings)",
-      "type_overrides: Different UBP values for same material used as sheet vs profile"
+      "type_overrides: Different UBP values for same material used as sheet vs profile",
+      "type_fallback: Mappings used when material is unknown but type is known (e.g., fasteners)"
     ]
   },
   "materials": {
@@ -59,6 +60,24 @@
       "oeko_name": "Stahlprofil, blank",
       "ubp_per_kg": 1290,
       "category": "steel_profile"
+    },
+    "EPDM": {
+      "oeko_id": "09.004",
+      "oeko_name": "Dichtungsbahn Gummi (EPDM)",
+      "ubp_per_kg": 8110,
+      "category": "rubber"
+    },
+    "NR": {
+      "oeko_id": "09.004",
+      "oeko_name": "Dichtungsbahn Gummi (EPDM)",
+      "ubp_per_kg": 8110,
+      "category": "rubber"
+    },
+    "PE": {
+      "oeko_id": "09.004",
+      "oeko_name": "Dichtungsbahn Gummi (EPDM)",
+      "ubp_per_kg": 8110,
+      "category": "plastic"
     }
   },
   "type_overrides": {
@@ -67,9 +86,27 @@
     },
     "Kantblech": {
       "steel": {"oeko_id": "06.010", "oeko_name": "Stahlblech, blank", "ubp_per_kg": 5260}
+    }
+  },
+  "type_fallback": {
+    "_comment": "Used when material is unknown/empty but type indicates a known category",
+    "fasteners": {
+      "oeko_id": "06.011",
+      "oeko_name": "Stahlblech, verzinkt",
+      "ubp_per_kg": 15200,
+      "types": [
+        "Hilti", "Fischer", "Senkschrauben", "Sechskantschrauben", "Hutmuttern",
+        "Sechskantmuttern", "Scheiben", "Gewindestifte", "Zylinderkopfschrauben",
+        "Bolzenanker", "Ankerstange", "Betonschraube", "Blechschrauben",
+        "Segmentanker", "Beschlag", "Holzschrauben", "NIKO"
+      ],
+      "keywords": ["Hilti", "Anker", "Schraub", "Konsole"]
     },
-    "Flachstahl": {
-      "steel": {"oeko_id": "06.010", "oeko_name": "Stahlblech, blank", "ubp_per_kg": 5260}
+    "plastic": {
+      "oeko_id": "15.005",
+      "oeko_name": "Polystyrol (PS)",
+      "ubp_per_kg": 8170,
+      "keywords": ["Kunststoff", "kunststoff", "Plastic", "plastic"]
     }
   },
   "coatings": {

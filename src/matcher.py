@@ -43,11 +43,13 @@ class MaterialMatcher:
                 data = json.load(f)
                 self.materials = data.get("materials", {})
                 self.type_overrides = data.get("type_overrides", {})
+                self.type_fallback = data.get("type_fallback", {})
                 self.coatings = data.get("coatings", {})
                 self.coating_alu_override = data.get("coating_aluminum_override", {})
         else:
             self.materials = {}
             self.type_overrides = {}
+            self.type_fallback = {}
             self.coatings = {}
             self.coating_alu_override = {}
 
@@ -86,9 +88,11 @@ class MaterialMatcher:
         whether they're used as profiles or sheets. This method checks if
         the component type triggers an override.
 
+        Note: Only applies to regular steel, NOT stainless steel (304, X5CrNi).
+
         Args:
             material: The base material code
-            typ: The component type (e.g., "Bleche", "Flachstahl")
+            typ: The component type (e.g., "Bleche", "Kantblech")
 
         Returns:
             MaterialMatch if an override applies, None otherwise
@@ -97,7 +101,8 @@ class MaterialMatcher:
 
         for type_key, override_data in self.type_overrides.items():
             if type_key.lower() in typ.lower():
-                if category in ["steel", "stainless_steel"] and "steel" in override_data:
+                # Only apply sheet override to regular steel, NOT stainless steel
+                if category == "steel" and "steel" in override_data:
                     override = override_data["steel"]
                     return MaterialMatch(
                         matched=True,
@@ -107,6 +112,62 @@ class MaterialMatcher:
                         category="steel_sheet",
                         match_type="type_override"
                     )
+        return None
+
+    def _check_type_fallback(self, typ: str, bezeichnung: str) -> Optional[MaterialMatch]:
+        """
+        Check if a type-based fallback applies when material is unknown.
+
+        Used for fasteners, plastics, and other items where type indicates the category.
+
+        Args:
+            typ: The component type (e.g., "Sechskantschrauben", "Scheiben")
+            bezeichnung: The description (e.g., "U-Kunststoffplatten")
+
+        Returns:
+            MaterialMatch if a fallback applies, None otherwise
+        """
+        # Check fasteners by type
+        fasteners = self.type_fallback.get("fasteners", {})
+        if typ and fasteners.get("types"):
+            for fastener_type in fasteners["types"]:
+                if fastener_type.lower() in typ.lower():
+                    return MaterialMatch(
+                        matched=True,
+                        oeko_id=fasteners["oeko_id"],
+                        oeko_name=fasteners["oeko_name"],
+                        ubp_per_kg=fasteners["ubp_per_kg"],
+                        category="fastener",
+                        match_type="type_fallback"
+                    )
+
+        # Check fasteners by keywords in description (for items without type)
+        if bezeichnung and fasteners.get("keywords"):
+            for keyword in fasteners["keywords"]:
+                if keyword.lower() in bezeichnung.lower():
+                    return MaterialMatch(
+                        matched=True,
+                        oeko_id=fasteners["oeko_id"],
+                        oeko_name=fasteners["oeko_name"],
+                        ubp_per_kg=fasteners["ubp_per_kg"],
+                        category="fastener",
+                        match_type="type_fallback"
+                    )
+
+        # Check plastic by keywords in description
+        plastic = self.type_fallback.get("plastic", {})
+        if bezeichnung and plastic.get("keywords"):
+            for keyword in plastic["keywords"]:
+                if keyword.lower() in bezeichnung.lower():
+                    return MaterialMatch(
+                        matched=True,
+                        oeko_id=plastic["oeko_id"],
+                        oeko_name=plastic["oeko_name"],
+                        ubp_per_kg=plastic["ubp_per_kg"],
+                        category="plastic",
+                        match_type="type_fallback"
+                    )
+
         return None
 
     def match_material(self, material: str, typ: str = "",
@@ -125,15 +186,20 @@ class MaterialMatcher:
         # Clean inputs
         material = material.strip() if material else ""
         typ = typ.strip() if typ else ""
+        bezeichnung = bezeichnung.strip() if bezeichnung else ""
 
         if not material or material == " ":
+            # Try type-based fallback for items without material (fasteners, plastics)
+            fallback_match = self._check_type_fallback(typ, bezeichnung)
+            if fallback_match:
+                return fallback_match
             return MaterialMatch(matched=False, match_type="empty")
 
         # Try exact match first
         if material in self.materials:
             mat_data = self.materials[material]
 
-            # Check for type override (e.g., Flachstahl should use sheet, not profile)
+            # Check for type override (e.g., Bleche should use sheet, not profile)
             override_match = self._check_type_override(material, typ)
             if override_match:
                 return override_match
@@ -206,16 +272,23 @@ if __name__ == "__main__":
     test_materials = [
         ("S235JR", "U - Profile", "UPE 300"),
         ("S235JR", "Flachstahl", "BRFL 10x360"),
+        ("S235JR", "Bleche", "Blech 5mm"),
+        ("S235JR", "Kantblech", "Kantblech 3mm"),
         ("EN AW-6060", "", "Klemmprofil"),
         ("X5CrNi18-10", "Bleche", ""),
-        ("EPDM", "Beschlag", ""),
-        ("304", "", ""),
+        ("304", "Kantblech", ""),  # Should NOT be overridden to sheet
+        ("EPDM", "", "Dichtung"),
+        ("NR", "Schallhemmende Produkte", ""),
+        ("PE", "", ""),
+        ("", "Sechskantschrauben", "M8x20"),  # Fastener fallback
+        ("", "Scheiben", "M8"),  # Fastener fallback
+        ("", "", "U-Kunststoffplatten 45x60"),  # Plastic fallback
     ]
 
     print("=== MATERIAL MATCHING ===")
     for mat, typ, bez in test_materials:
         result = matcher.match_material(mat, typ, bez)
-        print(f"{mat:20} | {typ:15} -> {result.oeko_name or 'NO MATCH':30} "
+        print(f"{mat:20} | {typ:25} -> {result.oeko_name or 'NO MATCH':30} "
               f"({result.ubp_per_kg or '-'} UBP/kg) [{result.match_type}]")
 
     # Test coatings
