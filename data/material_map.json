@@ -88,25 +88,22 @@
       "steel": {"oeko_id": "06.010", "oeko_name": "Stahlblech, blank", "ubp_per_kg": 5260}
     }
   },
-  "type_fallback": {
-    "_comment": "Used when material is unknown/empty but type indicates a known category",
+  "bezeichnung_patterns": {
+    "_comment": "Explicit Bezeichnung prefix patterns for items without material code",
     "fasteners": {
       "oeko_id": "06.011",
       "oeko_name": "Stahlblech, verzinkt",
       "ubp_per_kg": 15200,
-      "types": [
-        "Hilti", "Fischer", "Senkschrauben", "Sechskantschrauben", "Hutmuttern",
-        "Sechskantmuttern", "Scheiben", "Gewindestifte", "Zylinderkopfschrauben",
-        "Bolzenanker", "Ankerstange", "Betonschraube", "Blechschrauben",
-        "Segmentanker", "Beschlag", "Holzschrauben", "NIKO"
-      ],
-      "keywords": ["Hilti", "Anker", "Schraub", "Konsole"]
-    },
-    "plastic": {
-      "oeko_id": "15.005",
-      "oeko_name": "Polystyrol (PS)",
-      "ubp_per_kg": 8170,
-      "keywords": ["Kunststoff", "kunststoff", "Plastic", "plastic"]
+      "category": "fastener",
+      "prefixes": [
+        "ISO 10642", "ISO 4017", "ISO 7093", "ISO 7090", "ISO 7089", "ISO 7094",
+        "ISO 4034", "ISO 4032", "ISO 4026", "ISO 14399", "ISO 14586",
+        "DIN 1587", "DIN 7984", "DIN 7349", "DIN 6912", "DIN 125",
+        "EN 14399",
+        "HST M", "HST3 M", "HAS ", "HUS",
+        "RG M", "FBS ",
+        "Schraubanker", "Alublech"
+      ]
     }
   },
   "coatings": {

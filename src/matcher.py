@@ -43,13 +43,13 @@ class MaterialMatcher:
                 data = json.load(f)
                 self.materials = data.get("materials", {})
                 self.type_overrides = data.get("type_overrides", {})
-                self.type_fallback = data.get("type_fallback", {})
+                self.bezeichnung_patterns = data.get("bezeichnung_patterns", {})
                 self.coatings = data.get("coatings", {})
                 self.coating_alu_override = data.get("coating_aluminum_override", {})
         else:
             self.materials = {}
             self.type_overrides = {}
-            self.type_fallback = {}
+            self.bezeichnung_patterns = {}
             self.coatings = {}
             self.coating_alu_override = {}
 
@@ -114,60 +114,35 @@ class MaterialMatcher:
                     )
         return None
 
-    def _check_type_fallback(self, typ: str, bezeichnung: str) -> Optional[MaterialMatch]:
+    def _check_bezeichnung_pattern(self, bezeichnung: str) -> Optional[MaterialMatch]:
         """
-        Check if a type-based fallback applies when material is unknown.
-
-        Used for fasteners, plastics, and other items where type indicates the category.
+        Check if Bezeichnung matches explicit patterns (e.g., fasteners by ISO/DIN).
 
         Args:
-            typ: The component type (e.g., "Sechskantschrauben", "Scheiben")
-            bezeichnung: The description (e.g., "U-Kunststoffplatten")
+            bezeichnung: The component description
 
         Returns:
-            MaterialMatch if a fallback applies, None otherwise
+            MaterialMatch if a pattern matches, None otherwise
         """
-        # Check fasteners by type
-        fasteners = self.type_fallback.get("fasteners", {})
-        if typ and fasteners.get("types"):
-            for fastener_type in fasteners["types"]:
-                if fastener_type.lower() in typ.lower():
+        if not bezeichnung:
+            return None
+
+        bez_upper = bezeichnung.upper()
+
+        for pattern_data in self.bezeichnung_patterns.values():
+            if not isinstance(pattern_data, dict):
+                continue
+            prefixes = pattern_data.get("prefixes", [])
+            for prefix in prefixes:
+                if bez_upper.startswith(prefix.upper()):
                     return MaterialMatch(
                         matched=True,
-                        oeko_id=fasteners["oeko_id"],
-                        oeko_name=fasteners["oeko_name"],
-                        ubp_per_kg=fasteners["ubp_per_kg"],
-                        category="fastener",
-                        match_type="type_fallback"
+                        oeko_id=pattern_data["oeko_id"],
+                        oeko_name=pattern_data["oeko_name"],
+                        ubp_per_kg=pattern_data["ubp_per_kg"],
+                        category=pattern_data.get("category", "fastener"),
+                        match_type="bezeichnung_pattern"
                     )
-
-        # Check fasteners by keywords in description (for items without type)
-        if bezeichnung and fasteners.get("keywords"):
-            for keyword in fasteners["keywords"]:
-                if keyword.lower() in bezeichnung.lower():
-                    return MaterialMatch(
-                        matched=True,
-                        oeko_id=fasteners["oeko_id"],
-                        oeko_name=fasteners["oeko_name"],
-                        ubp_per_kg=fasteners["ubp_per_kg"],
-                        category="fastener",
-                        match_type="type_fallback"
-                    )
-
-        # Check plastic by keywords in description
-        plastic = self.type_fallback.get("plastic", {})
-        if bezeichnung and plastic.get("keywords"):
-            for keyword in plastic["keywords"]:
-                if keyword.lower() in bezeichnung.lower():
-                    return MaterialMatch(
-                        matched=True,
-                        oeko_id=plastic["oeko_id"],
-                        oeko_name=plastic["oeko_name"],
-                        ubp_per_kg=plastic["ubp_per_kg"],
-                        category="plastic",
-                        match_type="type_fallback"
-                    )
-
         return None
 
     def match_material(self, material: str, typ: str = "",
@@ -189,10 +164,10 @@ class MaterialMatcher:
         bezeichnung = bezeichnung.strip() if bezeichnung else ""
 
         if not material or material == " ":
-            # Try type-based fallback for items without material (fasteners, plastics)
-            fallback_match = self._check_type_fallback(typ, bezeichnung)
-            if fallback_match:
-                return fallback_match
+            # Try explicit Bezeichnung patterns (fasteners, etc.)
+            pattern_match = self._check_bezeichnung_pattern(bezeichnung)
+            if pattern_match:
+                return pattern_match
             return MaterialMatch(matched=False, match_type="empty")
 
         # Try exact match first
@@ -268,28 +243,42 @@ if __name__ == "__main__":
     # Test matching
     matcher = MaterialMatcher()
 
-    # Test materials
+    # Test materials - only explicitly mapped materials should match
     test_materials = [
         ("S235JR", "U - Profile", "UPE 300"),
-        ("S235JR", "Flachstahl", "BRFL 10x360"),
         ("S235JR", "Bleche", "Blech 5mm"),
-        ("S235JR", "Kantblech", "Kantblech 3mm"),
         ("EN AW-6060", "", "Klemmprofil"),
         ("X5CrNi18-10", "Bleche", ""),
         ("304", "Kantblech", ""),  # Should NOT be overridden to sheet
         ("EPDM", "", "Dichtung"),
-        ("NR", "Schallhemmende Produkte", ""),
-        ("PE", "", ""),
-        ("", "Sechskantschrauben", "M8x20"),  # Fastener fallback
-        ("", "Scheiben", "M8"),  # Fastener fallback
-        ("", "", "U-Kunststoffplatten 45x60"),  # Plastic fallback
+        ("", "", "VSG 12mm"),  # Glass - no match expected
+        ("", "", "VF Scheibe"),  # Glass - no match expected
     ]
 
     print("=== MATERIAL MATCHING ===")
     for mat, typ, bez in test_materials:
         result = matcher.match_material(mat, typ, bez)
-        print(f"{mat:20} | {typ:25} -> {result.oeko_name or 'NO MATCH':30} "
+        print(f"{mat:20} | {bez:25} -> {result.oeko_name or 'NO MATCH':30} "
               f"({result.ubp_per_kg or '-'} UBP/kg) [{result.match_type}]")
+
+    # Test fastener patterns (Bezeichnung-based)
+    print("\n=== FASTENER PATTERNS (06.011) ===")
+    fastener_tests = [
+        "ISO 10642-M12x45-10.9",
+        "ISO 4017-M12x25-A2-50",
+        "DIN 1587-M12-SW18-A2-50",
+        "EN 14399-4-M12-10-HV",
+        "HST M16x130/15",
+        "HST3 M10x100 40_20",
+        "HAS 8.8 HDG M12x120",
+        "RG M12x160",
+        "FBS II 10 x 120 65/55/35 SK R",
+        "Schraubanker HUS4-CR 8x75",
+        "Alublech 3mm",
+    ]
+    for bez in fastener_tests:
+        result = matcher.match_material("", "", bez)
+        print(f"{bez:35} -> {result.oeko_name or 'NO MATCH':25} [{result.match_type}]")
 
     # Test coatings
     print("\n=== COATING MATCHING ===")
