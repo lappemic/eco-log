@@ -4,6 +4,7 @@
 import io
 import os
 import re
+import hashlib
 from datetime import datetime
 import streamlit as st
 import pandas as pd
@@ -11,6 +12,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from pathlib import Path
+import extra_streamlit_components as stx
 
 # Professional environmental color palette
 # Low impact = green tones, High impact = red/orange tones
@@ -47,18 +49,38 @@ OEKOBILANZ_PATH = Path(os.environ.get(
 
 
 APP_PASSWORD = "econstruct2025!"
+AUTH_COOKIE_NAME = "eco_log_auth"
+AUTH_TOKEN = hashlib.sha256(APP_PASSWORD.encode()).hexdigest()[:32]
+
+
+@st.cache_resource
+def get_cookie_manager():
+    """Get cookie manager instance (cached to avoid recreation)."""
+    return stx.CookieManager()
 
 
 def check_password() -> bool:
-    """Simple password protection."""
+    """Password protection with cookie persistence."""
+    cookie_manager = get_cookie_manager()
+
+    # Check session state first (fastest)
     if st.session_state.get("authenticated"):
         return True
 
+    # Check cookie for persistent login
+    auth_cookie = cookie_manager.get(AUTH_COOKIE_NAME)
+    if auth_cookie == AUTH_TOKEN:
+        st.session_state.authenticated = True
+        return True
+
+    # Show login form
     st.title("🔒 Anmeldung erforderlich")
     password = st.text_input("Passwort", type="password")
     if password:
         if password == APP_PASSWORD:
             st.session_state.authenticated = True
+            # Set cookie for 30 days
+            cookie_manager.set(AUTH_COOKIE_NAME, AUTH_TOKEN, max_age=30*24*60*60)
             st.rerun()
         else:
             st.error("Falsches Passwort")
