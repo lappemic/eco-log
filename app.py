@@ -585,6 +585,16 @@ def main():
     excel_buffer = io.BytesIO()
     with pd.ExcelWriter(excel_buffer, engine="openpyxl") as writer:
         export_df.to_excel(writer, index=False, sheet_name="UBP Ergebnisse")
+        # Auto-adjust column widths
+        worksheet = writer.sheets["UBP Ergebnisse"]
+        for idx, col in enumerate(export_df.columns, 1):
+            # Calculate width based on column name and content
+            max_length = len(str(col))
+            for value in export_df[col].astype(str):
+                max_length = max(max_length, len(value))
+            # Set width with padding, min 10, max 40
+            adjusted_width = min(max(max_length + 2, 10), 40)
+            worksheet.column_dimensions[worksheet.cell(1, idx).column_letter].width = adjusted_width
     excel_buffer.seek(0)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
