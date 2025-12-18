@@ -119,6 +119,15 @@
       "prefixes": [
         "U-Kunststoffplatten"
       ]
+    },
+    "stainless_steel": {
+      "oeko_id": "06.004",
+      "oeko_name": "Chromnickelstahlblech 18/8 blank",
+      "ubp_per_kg": 9710,
+      "category": "stainless_steel",
+      "prefixes": [
+        "BLECH EDELSTAHL 1.4301"
+      ]
     }
   },
   "coatings": {
