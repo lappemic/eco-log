@@ -233,19 +233,21 @@ class UBPCalculator:
                 row["Material (KBOB)"] = comp.material_oeko_name or "-"
                 row["Korrektur Material (KBOB)"] = ""
                 # 1. Beschichtung: matched then correction
-                row["Beschichtung ID (KBOB)"] = comp.coating_oeko_id or "-"
+                row["1. Beschichtung ID (KBOB)"] = comp.coating_oeko_id or "-"
                 row["Korrektur 1. Beschichtung ID (KBOB)"] = ""
-                row["Beschichtung (KBOB)"] = comp.coating_oeko_name or "-"
+                row["1. Beschichtung (KBOB)"] = comp.coating_oeko_name or "-"
                 row["Korrektur 1. Beschichtung (KBOB)"] = ""
-                # 2. Beschichtung: correction only
+                # 2. Beschichtung: matched then correction
+                row["2. Beschichtung ID (KBOB)"] = "-"
                 row["Korrektur 2. Beschichtung ID (KBOB)"] = ""
+                row["2. Beschichtung (KBOB)"] = "-"
                 row["Korrektur 2. Beschichtung (KBOB)"] = ""
                 row["Kommentar"] = ""
             else:
                 row["Material ID (KBOB)"] = comp.material_oeko_id or "-"
                 row["Material (KBOB)"] = comp.material_oeko_name or "-"
-                row["Beschichtung ID (KBOB)"] = comp.coating_oeko_id or "-"
-                row["Beschichtung (KBOB)"] = comp.coating_oeko_name or "-"
+                row["1. Beschichtung ID (KBOB)"] = comp.coating_oeko_id or "-"
+                row["1. Beschichtung (KBOB)"] = comp.coating_oeko_name or "-"
 
             row["UBP Material"] = round(comp.ubp_material, 0)
             row["UBP Beschichtung"] = round(comp.ubp_coating, 0)
