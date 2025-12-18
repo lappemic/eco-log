@@ -30,6 +30,7 @@ class ComponentResult:
     material_ubp_per_kg: Optional[float] = None
 
     coating_matched: bool = False
+    coating_oeko_id: Optional[str] = None
     coating_oeko_name: Optional[str] = None
     coating_ubp_per_m2: Optional[float] = None
 
@@ -190,6 +191,7 @@ class UBPCalculator:
         coat_match = self.matcher.match_coating(beschichtung, material)
         if coat_match.matched:
             result.coating_matched = True
+            result.coating_oeko_id = coat_match.oeko_id
             result.coating_oeko_name = coat_match.oeko_name
             result.coating_ubp_per_m2 = coat_match.ubp_per_m2
             result.ubp_coating = flaeche_m2 * (coat_match.ubp_per_m2 or 0)
@@ -224,6 +226,7 @@ class UBPCalculator:
                 "Fläche (m²)": round(comp.flaeche_m2, 2),
                 "Material ID (KBOB)": comp.material_oeko_id or "-",
                 "Material (KBOB)": comp.material_oeko_name or "-",
+                "Beschichtung ID (KBOB)": comp.coating_oeko_id or "-",
                 "Beschichtung (KBOB)": comp.coating_oeko_name or "-",
                 "UBP Material": round(comp.ubp_material, 0),
                 "UBP Beschichtung": round(comp.ubp_coating, 0),
@@ -232,10 +235,10 @@ class UBPCalculator:
             }
 
             if include_review_columns:
-                row["Material korrekt?"] = ""
+                row["Korrektur Material ID (KBOB)"] = ""
                 row["Korrektur Material (KBOB)"] = ""
-                row["Beschichtung korrekt?"] = ""
-                row["Korrektur Beschichtung (KBOB)"] = ""
+                row["Korrektur 1. Beschichtung ID (KBOB)"] = ""
+                row["Korrektur 1. Beschichtung (KBOB)"] = ""
                 row["Kommentar"] = ""
 
             data.append(row)
