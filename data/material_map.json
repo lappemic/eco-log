@@ -67,6 +67,12 @@
       "ubp_per_kg": 8110,
       "category": "rubber"
     },
+    "Glasgummi": {
+      "oeko_id": "09.004",
+      "oeko_name": "Dichtungsbahn Gummi (EPDM)",
+      "ubp_per_kg": 8110,
+      "category": "rubber"
+    },
     "NR": {
       "oeko_id": "09.004",
       "oeko_name": "Dichtungsbahn Gummi (EPDM)",
